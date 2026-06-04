@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -47,7 +51,12 @@ func projetoKorpHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(resp)
+
+	// Melhoria 3: tratamento de erro no json.Encode
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		log.Printf("error encoding response: %v", err)
+		return
+	}
 
 	requestsTotal.WithLabelValues(r.Method, "/projeto-korp", "200").Inc()
 	log.Printf("GET /projeto-korp - 200 OK - %s", resp.Horario)
@@ -61,17 +70,46 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	// Mark service as up
+	// Melhoria 4: serviceUp vira 0 quando o processo encerrar
 	serviceUp.Set(1)
+	defer serviceUp.Set(0)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/projeto-korp", projetoKorpHandler)
 	mux.HandleFunc("/health", healthHandler)
 	mux.Handle("/metrics", promhttp.Handler())
 
-	log.Println("http-server-projeto-korp starting on :8080")
-	if err := http.ListenAndServe(":8080", mux); err != nil {
-		serviceUp.Set(0)
-		log.Fatalf("Server failed: %v", err)
+	// Melhoria 2: timeouts para proteção contra ataques Slowloris
+	server := &http.Server{
+		Addr:         ":8080",
+		Handler:      mux,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
+
+	// Melhoria 1: graceful shutdown — inicia o servidor em goroutine separada
+	go func() {
+		log.Println("http-server-projeto-korp starting on :8080")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server failed: %v", err)
+		}
+	}()
+
+	// Aguarda sinal de encerramento (SIGTERM do Docker, SIGINT do Ctrl+C)
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Sinal de encerramento recebido. Encerrando graciosamente...")
+
+	// Dá até 30 segundos para requisições em andamento terminarem
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("Erro no graceful shutdown: %v", err)
+	}
+
+	log.Println("Servidor encerrado com sucesso.")
 }
