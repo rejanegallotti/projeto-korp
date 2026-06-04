@@ -1,0 +1,61 @@
+---
+# =============================================================================
+# Role: app — Build da imagem Go e execução via Docker Compose
+# =============================================================================
+
+- name: Verificar que o código-fonte da aplicação existe
+  ansible.builtin.stat:
+    path: "{{ compose_dir }}/app/main.go"
+  register: src_check
+
+- name: Falhar se o código-fonte não for encontrado
+  ansible.builtin.fail:
+    msg: "Código-fonte não encontrado em {{ compose_dir }}/app/main.go"
+  when: not src_check.stat.exists
+
+- name: Build da imagem http-server-projeto-korp
+  community.docker.docker_image:
+    name: http-server-projeto-korp
+    tag: latest
+    build:
+      path: "{{ compose_dir }}/app"
+      dockerfile: Dockerfile
+    source: build
+    force_source: true
+
+- name: Copiar arquivo prometheus.yml para o diretório do compose
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/files/prometheus/prometheus.yml"
+    dest: "{{ compose_dir }}/prometheus/prometheus.yml"
+    mode: "0644"
+
+- name: Copiar provisioning do Grafana (datasources)
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/files/grafana/provisioning/datasources/"
+    dest: "{{ compose_dir }}/grafana/provisioning/datasources/"
+    mode: "0644"
+
+- name: Copiar provisioning do Grafana (dashboards)
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/files/grafana/provisioning/dashboards/"
+    dest: "{{ compose_dir }}/grafana/provisioning/dashboards/"
+    mode: "0644"
+
+- name: Subir todos os containers com Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ compose_dir }}"
+    files:
+      - docker-compose.yml
+    state: present
+    pull: missing
+    build: never
+
+- name: Aguardar container da aplicação estar saudável
+  ansible.builtin.command: >
+    docker inspect --format="{{ '{{' }}.State.Health.Status{{ '}}' }}"
+    http-server-projeto-korp
+  register: app_health
+  retries: 10
+  delay: 5
+  until: "'healthy' in app_health.stdout"
+  changed_when: false

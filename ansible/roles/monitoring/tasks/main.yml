@@ -1,0 +1,44 @@
+---
+# =============================================================================
+# Role: monitoring — Valida que Prometheus e Grafana estão operacionais
+# (os containers já sobem via docker compose no role "app")
+# =============================================================================
+
+- name: Aguardar Prometheus estar disponível
+  ansible.builtin.uri:
+    url: "http://localhost:9090/-/ready"
+    method: GET
+    status_code: 200
+  register: prom_ready
+  retries: 12
+  delay: 5
+  until: prom_ready.status == 200
+
+- name: Aguardar Grafana estar disponível
+  ansible.builtin.uri:
+    url: "http://localhost:3000/api/health"
+    method: GET
+    status_code: 200
+  register: grafana_ready
+  retries: 12
+  delay: 5
+  until: grafana_ready.status == 200
+
+- name: Verificar que Prometheus está coletando métricas do serviço
+  ansible.builtin.uri:
+    url: "http://localhost:9090/api/v1/query?query=service_up"
+    method: GET
+    status_code: 200
+  register: prom_query
+  retries: 6
+  delay: 10
+  until: >
+    prom_query.status == 200 and
+    prom_query.json.data.result | length > 0
+
+- name: Exibir status do monitoramento
+  ansible.builtin.debug:
+    msg:
+      - "Prometheus: ONLINE ✓"
+      - "Grafana:    ONLINE ✓"
+      - "service_up = {{ prom_query.json.data.result[0].value[1] }}"

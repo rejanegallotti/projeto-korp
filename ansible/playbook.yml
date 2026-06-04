@@ -1,0 +1,48 @@
+---
+# =============================================================================
+# Playbook: Provisionamento completo do Projeto Korp
+# Execução: ansible-playbook -i inventory.ini playbook.yml
+# =============================================================================
+- name: Provisionamento completo do Projeto Korp
+  hosts: local
+  become: true
+  vars:
+    # Diretório raiz do projeto (relativo ao playbook)
+    project_dir: "{{ playbook_dir }}/.."
+    compose_dir: "{{ project_dir | realpath }}"
+
+  pre_tasks:
+    - name: Verificar sistema operacional suportado
+      ansible.builtin.assert:
+        that:
+          - ansible_os_family in ["Debian", "RedHat"]
+        fail_msg: "SO não suportado: {{ ansible_os_family }}"
+        success_msg: "SO suportado: {{ ansible_os_family }}"
+
+  roles:
+    - role: docker
+    - role: app
+    - role: monitoring
+
+  post_tasks:
+    - name: Aguardar serviço ficar disponível (máx 60s)
+      ansible.builtin.uri:
+        url: "http://localhost:80/projeto-korp"
+        method: GET
+        status_code: 200
+      register: health_check
+      retries: 12
+      delay: 5
+      until: health_check.status == 200
+
+    - name: Exibir resposta do serviço no console
+      ansible.builtin.debug:
+        msg: |
+          ============================================================
+          Resposta de http://localhost:80/projeto-korp
+          ------------------------------------------------------------
+          {{ health_check.json | to_nice_json }}
+          ============================================================
+          Grafana:    http://localhost:3000  (admin/admin)
+          Prometheus: http://localhost:9090
+          ============================================================
