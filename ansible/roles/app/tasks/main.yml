@@ -50,12 +50,3 @@
     pull: missing
     build: never
 
-- name: Aguardar container da aplicação estar saudável
-  ansible.builtin.command: >
-    docker inspect --format="{{ '{{' }}.State.Health.Status{{ '}}' }}"
-    http-server-projeto-korp
-  register: app_health
-  retries: 10
-  delay: 5
-  until: "'healthy' in app_health.stdout"
-  changed_when: false

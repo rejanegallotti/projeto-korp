@@ -94,11 +94,6 @@
     append: true
   when: ansible_user_id != "root"
 
-- name: Criar rede Docker bridge korp-net
-  community.docker.docker_network:
-    name: korp-net
-    driver: bridge
-    state: present
 
 - name: Verificar versão do Docker instalada
   ansible.builtin.command: docker --version
