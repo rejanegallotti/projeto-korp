@@ -7,9 +7,9 @@
   hosts: local
   become: true
   vars:
-    # Diretório raiz do projeto (relativo ao playbook)
     project_dir: "{{ playbook_dir }}/.."
     compose_dir: "{{ project_dir | realpath }}"
+    grafana_admin_password: "admin"   # Em produção: usar Ansible Vault
 
   pre_tasks:
     - name: Verificar sistema operacional suportado
@@ -17,7 +17,15 @@
         that:
           - ansible_os_family in ["Debian", "RedHat"]
         fail_msg: "SO não suportado: {{ ansible_os_family }}"
-        success_msg: "SO suportado: {{ ansible_os_family }}"
+        success_msg: "SO suportado: {{ ansible_os_family }} — {{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+    - name: Exibir informações do ambiente
+      ansible.builtin.debug:
+        msg:
+          - "Host:       {{ inventory_hostname }}"
+          - "SO:         {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Usuário:    {{ ansible_user_id }}"
+          - "Diretório:  {{ compose_dir }}"
 
   roles:
     - role: docker
@@ -25,7 +33,7 @@
     - role: monitoring
 
   post_tasks:
-    - name: Aguardar serviço ficar disponível (máx 60s)
+    - name: Aguardar serviço ficar disponível via NGINX (máx 60s)
       ansible.builtin.uri:
         url: "http://localhost:80/projeto-korp"
         method: GET
@@ -46,3 +54,16 @@
           Grafana:    http://localhost:3000  (admin/admin)
           Prometheus: http://localhost:9090
           ============================================================
+
+    - name: Resumo do provisionamento
+      ansible.builtin.debug:
+        msg:
+          - "============================================================"
+          - " PROVISIONAMENTO CONCLUÍDO COM SUCESSO"
+          - "============================================================"
+          - " Containers rodando:"
+          - "   http-server-projeto-korp  → porta 8080 (interno)"
+          - "   nginx                     → porta 80"
+          - "   prometheus                → porta 9090"
+          - "   grafana                   → porta 3000"
+          - "============================================================"

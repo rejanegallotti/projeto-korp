@@ -13,6 +13,52 @@
     msg: "Código-fonte não encontrado em {{ compose_dir }}/app/main.go"
   when: not src_check.stat.exists
 
+- name: Garantir que diretórios de configuração existem com permissões corretas
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: "{{ item.mode }}"
+    owner: "{{ ansible_user_id }}"
+  loop:
+    - { path: "{{ compose_dir }}/prometheus",                           mode: "0755" }
+    - { path: "{{ compose_dir }}/grafana",                              mode: "0755" }
+    - { path: "{{ compose_dir }}/grafana/provisioning",                 mode: "0755" }
+    - { path: "{{ compose_dir }}/grafana/provisioning/datasources",     mode: "0755" }
+    - { path: "{{ compose_dir }}/grafana/provisioning/dashboards",      mode: "0755" }
+
+- name: Copiar arquivo prometheus.yml
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/files/prometheus/prometheus.yml"
+    dest: "{{ compose_dir }}/prometheus/prometheus.yml"
+    mode: "0644"
+    owner: "{{ ansible_user_id }}"
+
+- name: Copiar provisioning do Grafana (datasources)
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/files/grafana/provisioning/datasources/"
+    dest: "{{ compose_dir }}/grafana/provisioning/datasources/"
+    mode: "0644"
+    owner: "{{ ansible_user_id }}"
+
+- name: Copiar provisioning do Grafana (dashboards)
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/files/grafana/provisioning/dashboards/"
+    dest: "{{ compose_dir }}/grafana/provisioning/dashboards/"
+    mode: "0644"
+    owner: "{{ ansible_user_id }}"
+
+- name: Garantir permissões nos diretórios de provisioning do Grafana
+  ansible.builtin.file:
+    path: "{{ compose_dir }}/grafana"
+    state: directory
+    recurse: true
+    mode: "0755"
+
+- name: Verificar se imagem já existe
+  community.docker.docker_image_info:
+    name: http-server-projeto-korp:latest
+  register: image_info
+
 - name: Build da imagem http-server-projeto-korp
   community.docker.docker_image:
     name: http-server-projeto-korp
@@ -21,25 +67,7 @@
       path: "{{ compose_dir }}/app"
       dockerfile: Dockerfile
     source: build
-    force_source: true
-
-- name: Copiar arquivo prometheus.yml para o diretório do compose
-  ansible.builtin.copy:
-    src: "{{ playbook_dir }}/files/prometheus/prometheus.yml"
-    dest: "{{ compose_dir }}/prometheus/prometheus.yml"
-    mode: "0644"
-
-- name: Copiar provisioning do Grafana (datasources)
-  ansible.builtin.copy:
-    src: "{{ playbook_dir }}/files/grafana/provisioning/datasources/"
-    dest: "{{ compose_dir }}/grafana/provisioning/datasources/"
-    mode: "0644"
-
-- name: Copiar provisioning do Grafana (dashboards)
-  ansible.builtin.copy:
-    src: "{{ playbook_dir }}/files/grafana/provisioning/dashboards/"
-    dest: "{{ compose_dir }}/grafana/provisioning/dashboards/"
-    mode: "0644"
+    force_source: "{{ image_info.images | length == 0 }}"
 
 - name: Subir todos os containers com Docker Compose
   community.docker.docker_compose_v2:
@@ -50,3 +78,12 @@
     pull: missing
     build: never
 
+- name: Aguardar aplicação estar respondendo
+  ansible.builtin.uri:
+    url: "http://localhost:80/health"
+    method: GET
+    status_code: 200
+  register: app_health
+  retries: 12
+  delay: 5
+  until: app_health.status == 200

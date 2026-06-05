@@ -23,24 +23,31 @@
     mode: "0755"
   when: ansible_os_family == "Debian"
 
-- name: "[Debian] Adicionar chave GPG oficial do Docker"
+- name: "[Debian] Baixar chave GPG oficial do Docker"
+  ansible.builtin.get_url:
+    url: "https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"
+    dest: /tmp/docker.gpg
+    mode: "0644"
+    force: false
+  when: ansible_os_family == "Debian"
+
+- name: "[Debian] Converter e instalar chave GPG do Docker"
   ansible.builtin.shell: |
-    curl -fsSL https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg \
-      | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    gpg --dearmor < /tmp/docker.gpg > /etc/apt/keyrings/docker.gpg
     chmod a+r /etc/apt/keyrings/docker.gpg
   args:
     creates: /etc/apt/keyrings/docker.gpg
   when: ansible_os_family == "Debian"
 
-- name: "[Debian] Adicionar repositório do Docker"
-  ansible.builtin.shell: |
-    echo \
-      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-      https://download.docker.com/linux/{{ ansible_distribution | lower }} \
-      $(lsb_release -cs) stable" \
-      | tee /etc/apt/sources.list.d/docker.list > /dev/null
-  args:
-    creates: /etc/apt/sources.list.d/docker.list
+- name: "[Debian] Adicionar repositório oficial do Docker"
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [arch={{ ansible_architecture }}
+      signed-by=/etc/apt/keyrings/docker.gpg]
+      https://download.docker.com/linux/{{ ansible_distribution | lower }}
+      {{ ansible_distribution_release }} stable
+    state: present
+    filename: docker
   when: ansible_os_family == "Debian"
 
 - name: "[Debian] Instalar Docker Engine + Compose Plugin"
@@ -94,11 +101,18 @@
     append: true
   when: ansible_user_id != "root"
 
-
 - name: Verificar versão do Docker instalada
   ansible.builtin.command: docker --version
   register: docker_version
   changed_when: false
+
+- name: Verificar versão mínima do Docker (24.0+)
+  ansible.builtin.assert:
+    that:
+      - docker_version.stdout is search ('Docker version [2-9][4-9]\.') 
+        or docker_search('Docker version [3-9][0-9]\.')
+    fail_msg: "Versão do Docker abaixo do mínimo requerido (24.0). Encontrado: {{ docker_version.stdout }}"
+    success_msg: "Versão do Docker OK: {{ docker_version.stdout }}"
 
 - name: Exibir versão do Docker
   ansible.builtin.debug:

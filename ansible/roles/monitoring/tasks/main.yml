@@ -1,7 +1,6 @@
 ---
 # =============================================================================
-# Role: monitoring — Valida que Prometheus e Grafana estão operacionais
-# (os containers já sobem via docker compose no role "app")
+# Role: monitoring — Valida Prometheus, Grafana e dashboard
 # =============================================================================
 
 - name: Aguardar Prometheus estar disponível
@@ -30,15 +29,43 @@
     method: GET
     status_code: 200
   register: prom_query
-  retries: 6
+  retries: 8
   delay: 10
   until: >
     prom_query.status == 200 and
     prom_query.json.data.result | length > 0
 
+- name: Verificar que datasource Prometheus está configurado no Grafana
+  ansible.builtin.uri:
+    url: "http://localhost:3000/api/datasources/name/Prometheus"
+    method: GET
+    status_code: 200
+    url_username: admin
+    url_password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+  register: datasource_check
+  retries: 6
+  delay: 5
+  until: datasource_check.status == 200
+
+- name: Verificar que dashboard está provisionado no Grafana
+  ansible.builtin.uri:
+    url: "http://localhost:3000/api/dashboards/uid/projeto-korp-dashboard"
+    method: GET
+    status_code: 200
+    url_username: admin
+    url_password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+  register: dashboard_check
+  retries: 6
+  delay: 5
+  until: dashboard_check.status == 200
+
 - name: Exibir status do monitoramento
   ansible.builtin.debug:
     msg:
-      - "Prometheus: ONLINE ✓"
-      - "Grafana:    ONLINE ✓"
+      - "Prometheus:  ONLINE ✓"
+      - "Grafana:     ONLINE ✓"
+      - "Datasource:  CONFIGURADO ✓"
+      - "Dashboard:   PROVISIONADO ✓"
       - "service_up = {{ prom_query.json.data.result[0].value[1] }}"
