@@ -13,7 +13,7 @@
   "liveNow": false,
   "panels": [
     {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -38,11 +38,11 @@
       "title": "Disponibilidade do Serviço",
       "type": "stat",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "service_up", "legendFormat": "Status", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }, "expr": "service_up", "legendFormat": "Status", "refId": "A" }
       ]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "fieldConfig": {
         "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } },
         "overrides": []
@@ -53,11 +53,11 @@
       "title": "Total de Requisições",
       "type": "stat",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(http_requests_total{path=\"/projeto-korp\"})", "legendFormat": "Total", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }, "expr": "sum(http_requests_total{path=\"/projeto-korp\"})", "legendFormat": "Total", "refId": "A" }
       ]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -74,11 +74,11 @@
       "title": "Taxa de Requisições por Segundo",
       "type": "timeseries",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "rate(http_requests_total{path=\"/projeto-korp\"}[1m])", "legendFormat": "{{method}} {{status}}", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }, "expr": "rate(http_requests_total{path=\"/projeto-korp\"}[1m])", "legendFormat": "{{method}} {{status}}", "refId": "A" }
       ]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "fieldConfig": {
         "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } },
         "overrides": []
@@ -89,11 +89,11 @@
       "title": "Taxa de Req/s (último 1m)",
       "type": "stat",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(http_requests_total{path=\"/projeto-korp\"}[1m]))", "legendFormat": "req/s", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }, "expr": "sum(rate(http_requests_total{path=\"/projeto-korp\"}[1m]))", "legendFormat": "req/s", "refId": "A" }
       ]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "fieldConfig": {
         "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } },
         "overrides": []
@@ -104,11 +104,11 @@
       "title": "Requisições com Sucesso (200)",
       "type": "stat",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(http_requests_total{path=\"/projeto-korp\",status=\"200\"})", "legendFormat": "200 OK", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }, "expr": "sum(http_requests_total{path=\"/projeto-korp\",status=\"200\"})", "legendFormat": "200 OK", "refId": "A" }
       ]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -125,7 +125,7 @@
       "title": "Volume de Requisições por Status HTTP",
       "type": "timeseries",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by(status) (increase(http_requests_total{path=\"/projeto-korp\"}[1m]))", "legendFormat": "HTTP {{status}}", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }, "expr": "sum by(status) (increase(http_requests_total{path=\"/projeto-korp\"}[1m]))", "legendFormat": "HTTP {{status}}", "refId": "A" }
       ]
     }
   ],

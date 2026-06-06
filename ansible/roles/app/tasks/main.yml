@@ -18,7 +18,7 @@
     path: "{{ item.path }}"
     state: directory
     mode: "{{ item.mode }}"
-    owner: "{{ ansible_user_id }}"
+    owner: "{{ real_user }}"
   loop:
     - { path: "{{ compose_dir }}/prometheus",                           mode: "0755" }
     - { path: "{{ compose_dir }}/grafana",                              mode: "0755" }
@@ -31,21 +31,21 @@
     src: "{{ playbook_dir }}/files/prometheus/prometheus.yml"
     dest: "{{ compose_dir }}/prometheus/prometheus.yml"
     mode: "0644"
-    owner: "{{ ansible_user_id }}"
+    owner: "{{ real_user }}"
 
 - name: Copiar provisioning do Grafana (datasources)
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/files/grafana/provisioning/datasources/"
     dest: "{{ compose_dir }}/grafana/provisioning/datasources/"
     mode: "0644"
-    owner: "{{ ansible_user_id }}"
+    owner: "{{ real_user }}"
 
 - name: Copiar provisioning do Grafana (dashboards)
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/files/grafana/provisioning/dashboards/"
     dest: "{{ compose_dir }}/grafana/provisioning/dashboards/"
     mode: "0644"
-    owner: "{{ ansible_user_id }}"
+    owner: "{{ real_user }}"
 
 - name: Garantir permissões nos diretórios de provisioning do Grafana
   ansible.builtin.file:

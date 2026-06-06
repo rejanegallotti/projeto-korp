@@ -19,6 +19,10 @@
         fail_msg: "SO não suportado: {{ ansible_os_family }}"
         success_msg: "SO suportado: {{ ansible_os_family }} — {{ ansible_distribution }} {{ ansible_distribution_version }}"
 
+    - name: Capturar usuário real 
+      ansible.builtin.set_fact:
+        real_user: "{{ ansible_env.SUDO_USER | default(ansible_user_id) }}" 
+
     - name: Exibir informações do ambiente
       ansible.builtin.debug:
         msg:
