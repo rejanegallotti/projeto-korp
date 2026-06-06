@@ -7,4 +7,4 @@ datasources:
     url: http://prometheus:9090
     isDefault: true
     editable: false
-    uid: PBFA97CFB590B2093
+    uid: korp-prometheus

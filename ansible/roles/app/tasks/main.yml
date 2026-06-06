@@ -33,20 +33,6 @@
     mode: "0644"
     owner: "{{ real_user }}"
 
-- name: Copiar provisioning do Grafana (datasources)
-  ansible.builtin.copy:
-    src: "{{ playbook_dir }}/files/grafana/provisioning/datasources/"
-    dest: "{{ compose_dir }}/grafana/provisioning/datasources/"
-    mode: "0644"
-    owner: "{{ real_user }}"
-
-- name: Copiar provisioning do Grafana (dashboards)
-  ansible.builtin.copy:
-    src: "{{ playbook_dir }}/files/grafana/provisioning/dashboards/"
-    dest: "{{ compose_dir }}/grafana/provisioning/dashboards/"
-    mode: "0644"
-    owner: "{{ real_user }}"
-
 - name: Garantir permissões nos diretórios de provisioning do Grafana
   ansible.builtin.file:
     path: "{{ compose_dir }}/grafana"
