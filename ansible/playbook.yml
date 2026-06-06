@@ -5,7 +5,6 @@
 # =============================================================================
 - name: Provisionamento completo do Projeto Korp
   hosts: local
-  become: true
   vars:
     project_dir: "{{ playbook_dir }}/.."
     compose_dir: "{{ project_dir | realpath }}"
@@ -28,7 +27,7 @@
         msg:
           - "Host:       {{ inventory_hostname }}"
           - "SO:         {{ ansible_distribution }} {{ ansible_distribution_version }}"
-          - "Usuário:    {{ ansible_user_id }}"
+          - "Usuário:    {{ real_user }}"
           - "Diretório:  {{ compose_dir }}"
 
   roles:

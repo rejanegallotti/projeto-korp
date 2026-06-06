@@ -4,7 +4,6 @@
 # Suporta Debian/Ubuntu e RHEL/CentOS/Fedora
 # =============================================================================
 
-# ── Debian / Ubuntu ──────────────────────────────────────────────────────────
 - name: "[Debian] Instalar dependências de pre-requisito"
   ansible.builtin.apt:
     name:
@@ -14,6 +13,7 @@
       - lsb-release
     state: present
     update_cache: true
+  become: true
   when: ansible_os_family == "Debian"
 
 - name: "[Debian] Criar diretório para chave GPG"
@@ -21,6 +21,7 @@
     path: /etc/apt/keyrings
     state: directory
     mode: "0755"
+  become: true
   when: ansible_os_family == "Debian"
 
 - name: "[Debian] Baixar chave GPG oficial do Docker"
@@ -29,6 +30,7 @@
     dest: /tmp/docker.gpg
     mode: "0644"
     force: false
+  become: true
   when: ansible_os_family == "Debian"
 
 - name: "[Debian] Converter e instalar chave GPG do Docker"
@@ -37,6 +39,7 @@
     chmod a+r /etc/apt/keyrings/docker.gpg
   args:
     creates: /etc/apt/keyrings/docker.gpg
+  become: true
   when: ansible_os_family == "Debian"
 
 - name: "[Debian] Adicionar repositório oficial do Docker"
@@ -48,6 +51,7 @@
       {{ ansible_distribution_release }} stable
     state: present
     filename: docker
+  become: true
   when: ansible_os_family == "Debian"
 
 - name: "[Debian] Instalar Docker Engine + Compose Plugin"
@@ -60,13 +64,14 @@
       - docker-compose-plugin
     state: present
     update_cache: true
+  become: true
   when: ansible_os_family == "Debian"
 
-# ── RHEL / CentOS / Fedora ───────────────────────────────────────────────────
 - name: "[RHEL] Instalar yum-utils"
   ansible.builtin.yum:
     name: yum-utils
     state: present
+  become: true
   when: ansible_os_family == "RedHat"
 
 - name: "[RHEL] Adicionar repositório do Docker"
@@ -75,6 +80,7 @@
     https://download.docker.com/linux/centos/docker-ce.repo
   args:
     creates: /etc/yum.repos.d/docker-ce.repo
+  become: true
   when: ansible_os_family == "RedHat"
 
 - name: "[RHEL] Instalar Docker Engine + Compose Plugin"
@@ -85,20 +91,22 @@
       - containerd.io
       - docker-compose-plugin
     state: present
+  become: true
   when: ansible_os_family == "RedHat"
 
-# ── Comum ────────────────────────────────────────────────────────────────────
 - name: Garantir que o serviço Docker está habilitado e em execução
   ansible.builtin.systemd:
     name: docker
     enabled: true
     state: started
+  become: true
 
 - name: Adicionar usuário atual ao grupo docker (evitar uso de sudo)
   ansible.builtin.user:
     name: "{{ ansible_user_id }}"
     groups: docker
     append: true
+  become: true
   when: ansible_user_id != "root"
 
 - name: Verificar versão do Docker instalada
@@ -109,8 +117,8 @@
 - name: Verificar versão mínima do Docker (24.0+)
   ansible.builtin.assert:
     that:
-      - docker_version.stdout is search ('Docker version [2-9][4-9]\.') 
-        or docker_search('Docker version [3-9][0-9]\.')
+      - docker_version.stdout is search('Docker version [2-9][4-9]\.')
+        or docker_version.stdout is search('Docker version [3-9][0-9]\.')
     fail_msg: "Versão do Docker abaixo do mínimo requerido (24.0). Encontrado: {{ docker_version.stdout }}"
     success_msg: "Versão do Docker OK: {{ docker_version.stdout }}"
 
