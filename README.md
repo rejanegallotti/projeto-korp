@@ -5,12 +5,41 @@ monitoramento com Prometheus + Grafana e automação via Ansible.
 
 ---
 
+## ⚡ Início Rápido
+
+```bash
+# 1. Instalar dependências mínimas
+sudo apt update
+sudo apt install ansible git -y
+
+# 2. Instalar coleção Docker para Ansible
+ansible-galaxy collection install community.docker
+
+# 3. Clonar o repositório
+git clone https://github.com/rejanegallotti/projeto-korp.git
+cd projeto-korp/ansible
+
+# 4. Provisionar o ambiente completo
+ansible-playbook -i inventory.ini playbook.yml --ask-become-pass
+```
+
+> **Pré-requisito único:** Ansible instalado. O Docker e todas as demais
+> dependências são instaladas e configuradas automaticamente pelo playbook.
+
+> **Sobre o `--ask-become-pass`:** O playbook precisa de privilégios de
+> administrador (sudo) para instalar o Docker e configurar o sistema.
+> Digite a senha sudo do seu usuário quando solicitado — nada será exibido
+> na tela durante a digitação, isso é normal.
+
+---
+
 ## Estrutura do Projeto
 
 ```
 projeto-korp/
 ├── app/
 │   ├── main.go              # Serviço HTTP em Go
+│   ├── main_test.go         # Testes unitários
 │   ├── go.mod               # Módulo Go
 │   ├── go.sum               # Checksums das dependências
 │   └── Dockerfile           # Imagem multi-stage (build + runtime distroless)
@@ -40,44 +69,17 @@ projeto-korp/
     │               ├── dashboards.yml
     │               └── http-server-projeto-korp-dashboard.json
     └── roles/
-        ├── docker/tasks/main.yml     # Instala Docker Engine + Compose Plugin
-        ├── app/tasks/main.yml        # Build da imagem + docker compose up
+        ├── docker/
+        │   ├── tasks/main.yml    # Instala Docker Engine + Compose Plugin
+        │   └── vars/main.yml     # Mapeamento de versões Ubuntu → repositório Docker
+        ├── app/tasks/main.yml    # Build da imagem + docker compose up
         └── monitoring/tasks/main.yml # Valida Prometheus, Grafana e dashboard
 ```
 
 ---
 
-## Pré-requisitos
+## O que o playbook faz
 
-| Ferramenta | Versão mínima | Instalação |
-|---|---|---|
-| Ansible | 2.14+ | `sudo apt install ansible -y` |
-| Python | 3.8+ | Incluído no Ubuntu |
-| community.docker | qualquer | `ansible-galaxy collection install community.docker` |
-| Docker | 24.0+ | Instalado automaticamente pelo playbook |
-
-> **Nota:** O Docker **não precisa estar instalado** previamente — o playbook Ansible instala e configura o Docker automaticamente.
-
----
-
-## Provisionamento automático (Ansible)
-
-### 1. Instalar a coleção necessária
-
-```bash
-ansible-galaxy collection install community.docker
-```
-
-### 2. Executar o playbook
-
-```bash
-cd ansible
-ansible-playbook -i inventory.ini playbook.yml --ask-become-pass
-```
-
-> **Sobre o `--ask-become-pass`:** O playbook precisa de privilégios de administrador (sudo) para instalar o Docker e configurar o sistema. Ao rodar o comando, será solicitada a senha sudo do seu usuário. Digite a senha do seu ambiente e pressione Enter — nada será exibido na tela durante a digitação, isso é normal.
-
-O playbook executa automaticamente:
 1. Verifica o sistema operacional (suporta Debian/Ubuntu e RHEL/CentOS)
 2. Instala Docker Engine + Compose Plugin via repositório oficial
 3. Garante que o serviço Docker está habilitado e em execução
@@ -114,7 +116,7 @@ ok: [localhost] => {
 }
 
 PLAY RECAP
-localhost: ok=33  changed=6  failed=0
+localhost: ok=32  changed=3  failed=0
 ```
 
 ---
@@ -169,6 +171,15 @@ curl http://localhost:80/projeto-korp
 
 ---
 
+## Testes unitários
+
+```bash
+cd app
+go test ./...
+```
+
+---
+
 ## Decisões técnicas
 
 ### Imagem Docker distroless com usuário não-root
@@ -195,7 +206,18 @@ Roles `docker`, `app` e `monitoring` com responsabilidade única. O role
 `monitoring` valida não só que os serviços estão rodando, mas que o datasource
 e o dashboard foram provisionados corretamente.
 
+### Mapeamento de versões Ubuntu para repositório Docker
+O arquivo `roles/docker/vars/main.yml` mapeia versões do Ubuntu para o
+repositório Docker correto — `noble` (24.04) usa o repositório `jammy` (22.04),
+garantindo compatibilidade entre versões.
+
 ### Graceful shutdown e timeouts HTTP
 O servidor captura SIGTERM/SIGINT e encerra conexões de forma organizada com
 timeout de 30 segundos. Timeouts de ReadTimeout (5s), WriteTimeout (10s) e
 IdleTimeout (120s) protegem contra ataques Slowloris.
+
+### become granular no Ansible
+O `become: true` está aplicado apenas nas tasks que realmente precisam de
+privilégios de root — instalação de pacotes, configuração do systemd e
+gerenciamento de permissões. Tasks de verificação e Docker rodam sem
+escalonamento de privilégio.
