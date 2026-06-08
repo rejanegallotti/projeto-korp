@@ -54,6 +54,12 @@
   become: true
   when: ansible_os_family == "Debian"
 
+- name: "[Debian] Atualizar cache apt após adicionar repositório Docker"
+  ansible.builtin.apt:
+    update_cache: true
+  become: true
+  when: ansible_os_family == "Debian"
+
 - name: "[Debian] Instalar Docker Engine + Compose Plugin"
   ansible.builtin.apt:
     name:
