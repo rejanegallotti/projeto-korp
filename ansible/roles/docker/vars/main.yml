@@ -2,13 +2,13 @@
 # Mapeamento de versões Ubuntu para repositórios Docker suportados
 # noble (24.04) usa o repositório jammy (22.04) pois é o mais recente estável
 docker_repo_map:
-  noble: jammy
+  noble: noble
   jammy: jammy
   focal: focal
   bookworm: bookworm
   bullseye: bullseye
 
 docker_arch_map:
-  x86-64: amd64
+  x86_64: amd64
   aarch64: arm64
-  armv71: armhf
+  armv7l: armhf
