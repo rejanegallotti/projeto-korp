@@ -7,3 +7,8 @@ docker_repo_map:
   focal: focal
   bookworm: bookworm
   bullseye: bullseye
+
+docker_arch_map:
+  x86-64: amd64
+  aarch64: arm64
+  armv71: armhf
